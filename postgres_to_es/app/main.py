@@ -26,7 +26,7 @@ def main():
                 etl = Etl(connection=psql_conn,
                           rows_limit=config.ROWS_LIMIT,
                           state=state)
-                
+
                 while True:
                     etl.etl()
                     time.sleep(config.SLEEP_SECONDS)

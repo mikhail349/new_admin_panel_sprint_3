@@ -157,7 +157,6 @@ class Extractor():
                 last_updated_at = data[-1]['updated_at']
             return (data, last_updated_at)
 
-
     def get_by_persons(self) -> tuple[list[Any], datetime.datetime]:
         """Получить сырые данные по измененным персоналиям и
         дату-время последнего изменения."""
@@ -202,7 +201,6 @@ class Extractor():
                 last_updated_at = data[-1]['updated_at']
             return (data, last_updated_at)
 
-
     def get(self) -> tuple[list[Any], dict]:
         """Получить кинопроизведения, измененные по Кинопроизведениям,
         Жанрам, Персоналиям.
@@ -217,7 +215,7 @@ class Extractor():
         rows_by_genres, last_updated_genre = self.get_by_genres()
         rows_by_persons, last_updated_person = self.get_by_persons()
         rows = rows_by_filmworks + rows_by_genres + rows_by_persons
-        
+
         state = {
             'film_work': last_updated_filmwork,
             'genre': last_updated_genre,
@@ -251,7 +249,7 @@ class Etl():
         rows = EtlTransformer.transform(rows)
         rows = list(set(rows))
         EtlLoader.load(rows)
-        
+
         if state['film_work']:
             self.state.set_state('film_work', state['film_work'])
         if state['genre']:
