@@ -17,12 +17,12 @@ class Person(BaseModel):
 class Filmwork(BaseModel):
     id: uuid.UUID
     imdb_rating: float = None
-    genre: str
+    genre: list[str]
     title: str
     description: str = None
-    director: str = None
-    actors_names: str = None
-    writers_names: str = None
+    director: list[str]
+    actors_names: list[str]
+    writers_names: list[str]
     actors: list[Person]
     writers: list[Person]
 
@@ -87,15 +87,24 @@ def get_columns_for_select() -> str:
     return """
         fw.id,
         fw.rating as imdb_rating,
-        string_agg(DISTINCT g.name, ', ') as genre,
+        COALESCE(array_agg(DISTINCT g.name), '{}') as genre,
         fw.title,
         fw.description,
-        string_agg(DISTINCT p.full_name, ', ')
-            FILTER (WHERE pfw.role = 'director') as director,
-        string_agg(DISTINCT p.full_name, ', ')
-            FILTER (WHERE pfw.role = 'actor') as actors_names,
-        string_agg(DISTINCT p.full_name, ', ')
-            FILTER (WHERE pfw.role = 'writer') as writers_names,
+        COALESCE(
+            array_agg(DISTINCT p.full_name)
+                FILTER (WHERE pfw.role = 'director'),
+            '{}'
+        ) as director,
+        COALESCE(
+            array_agg(DISTINCT p.full_name)
+                FILTER (WHERE pfw.role = 'actor'),
+            '{}'
+        ) as actors_names,
+        COALESCE(
+            array_agg(DISTINCT p.full_name)
+                FILTER (WHERE pfw.role = 'writer'),
+            '{}'
+        ) as writers_names,
         COALESCE(
             json_agg(
                 DISTINCT jsonb_build_object(
