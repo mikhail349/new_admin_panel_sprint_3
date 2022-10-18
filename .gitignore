@@ -1,0 +1,6 @@
+venv/
+.env
+.vscode/
+*.py[cod]
+*.mo
+*.log
