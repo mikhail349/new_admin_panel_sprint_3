@@ -18,11 +18,14 @@ def connect():
 
 
 def main():
-    logging.info(f'Сервис запущен. Частота опроса БД: ' \
-                 f'{config.SLEEP_SECONDS} сек.')
+    logging.info(f'Сервис запущен.')
     while True:
         try:
             with connect() as psql_conn:
+                logging.info(
+                    f'Соединение с БД установлено. ' \
+                    f'Частота опроса БД: {config.SLEEP_SECONDS} сек.' \
+                    f'Кол-во строк за один запрос: {config.ROWS_LIMIT}')
                 storage = JsonFileStorage(config.STORAGE_PATH)
                 state = State(storage)
                 filmwork_etl = FilmworkEtl(connection=psql_conn,
