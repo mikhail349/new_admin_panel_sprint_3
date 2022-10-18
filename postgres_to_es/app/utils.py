@@ -7,6 +7,7 @@ import uuid
 
 from pydantic import BaseModel
 from elasticsearch import Elasticsearch
+from elastic_transport import ConnectionError
 import psycopg2
 from psycopg2.extras import DictCursor
 from psycopg2 import OperationalError

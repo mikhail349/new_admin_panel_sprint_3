@@ -26,7 +26,7 @@ ES = {
 }
 """Настройки подключения к Elasticsearch."""
 
-STORAGE_PATH = os.environ.get('STORAGE_PATH')
+STORAGE_PATH = os.environ.get('STORAGE_PATH', 'storage.json')
 """Путь для хранилища состояния."""
 
 SLEEP_SECONDS = float(os.environ.get('SLEEP_SECONDS', 1.0))
