@@ -1,10 +1,15 @@
+from dataclasses import dataclass
 from functools import wraps
 import logging
 import time
+from typing import Any
 import uuid
 
 from pydantic import BaseModel
 from elasticsearch import Elasticsearch
+import psycopg2
+from psycopg2.extras import DictCursor
+from psycopg2 import OperationalError
 
 from app import config
 
@@ -25,6 +30,9 @@ class Filmwork(BaseModel):
     writers_names: list[str]
     actors: list[Person]
     writers: list[Person]
+
+    def __hash__(self):
+        return hash(self.id)
 
 
 def es_init():
@@ -77,50 +85,47 @@ def backoff(start_sleep_time=0.1, factor=2, border_sleep_time=10,
     return func_wrapper
 
 
-def get_columns_for_select() -> str:
-    """Получить список столбцов для Кинопроизведения в формате SQL.
+@backoff(classes=(OperationalError,))
+def psql_connect():
+    """Подключиться к Postgres."""
+    return psycopg2.connect(**config.POSTGRES_DSN, cursor_factory=DictCursor)
 
-    Returns:
-        str: Столбцы в формате SQL
 
-    """
-    return """
-        fw.id,
-        fw.rating as imdb_rating,
-        COALESCE(array_agg(DISTINCT g.name), '{}') as genre,
-        fw.title,
-        fw.description,
-        COALESCE(
-            array_agg(DISTINCT p.full_name)
-                FILTER (WHERE pfw.role = 'director'),
-            '{}'
-        ) as director,
-        COALESCE(
-            array_agg(DISTINCT p.full_name)
-                FILTER (WHERE pfw.role = 'actor'),
-            '{}'
-        ) as actors_names,
-        COALESCE(
-            array_agg(DISTINCT p.full_name)
-                FILTER (WHERE pfw.role = 'writer'),
-            '{}'
-        ) as writers_names,
-        COALESCE(
-            json_agg(
-                DISTINCT jsonb_build_object(
-                    'id', p.id,
-                    'name', p.full_name
-                )
-            ) FILTER (WHERE pfw.role = 'actor'),
-            '[]'
-        ) as actors,
-        COALESCE(
-            json_agg(
-                DISTINCT jsonb_build_object(
-                    'id', p.id,
-                    'name', p.full_name
-                )
-            ) FILTER (WHERE pfw.role = 'writer'),
-            '[]'
-        ) as writers
-    """
+class EtlTransformer():
+    """Класс трансформации Кинопроизведений из формата Postgres в ES."""
+
+    @classmethod
+    def transform(cls, rows: list[Any]) -> list[Filmwork]:
+        """трансформировать Кинопроизведения из формата Postgres в ES.
+
+        Args:
+            rows: Данные из Postgres
+
+        """
+        return [Filmwork(**row) for row in rows]
+
+
+@dataclass
+class EtlLoader():
+    """Класс загрузки Кинопроизведений в ElasticSearch."""
+
+    @classmethod
+    @backoff(classes=(ConnectionError,))
+    def load(cls, rows: list[Filmwork]):
+        """Загрузить Кинопроизведения в ElasticSearch.
+
+        Args:
+            rows: Кинопроизведения в подготовленном формате
+
+        """
+        with es_init() as es:
+            body = []
+            for row in rows:
+                meta = {'index': {'_index': config.ES['INDEX'],
+                                  '_id': row.id}}
+                body.append(meta)
+                body.append(row.dict())
+
+            if body:
+                es.bulk(body=body)
+                logging.info(f'Было обновлено {len(rows)} Кинопроизведений')
