@@ -16,7 +16,7 @@ POSTGRES_DSN = {
 }
 """Настройки подключения к Postgres."""
 
-ROWS_LIMIT = os.environ.get('ROWS_LIMIT', 100)
+ROWS_LIMIT = int(os.environ.get('ROWS_LIMIT', 100))
 """Кол-во строк для извлечения за раз."""
 
 ES = {
