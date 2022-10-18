@@ -1,4 +1,5 @@
 from functools import wraps
+import logging
 import time
 import uuid
 
@@ -62,7 +63,8 @@ def backoff(start_sleep_time=0.1, factor=2, border_sleep_time=10,
                     if time.time() >= next_time:
                         result = func(*args, **kwargs)
                         break
-                except classes:
+                except classes as e:
+                    logging.error(e)
                     t = start_sleep_time * factor**(retries)
                     if t >= border_sleep_time:
                         t = border_sleep_time

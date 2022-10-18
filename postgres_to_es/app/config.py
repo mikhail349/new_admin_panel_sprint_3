@@ -1,9 +1,11 @@
 import os
+import logging
 
 from dotenv import load_dotenv
 
 
 load_dotenv()
+logging.basicConfig(level=logging.INFO)
 
 POSTGRES_DSN = {
     'dbname': os.environ.get('DB_NAME'),
@@ -26,3 +28,6 @@ ES = {
 
 STORAGE_PATH = os.environ.get('STORAGE_PATH')
 """Путь для хранилища состояния."""
+
+SLEEP_SECONDS = float(os.environ.get('SLEEP_SECONDS', 1.0))
+"""Через сколько секунд заново опрашивать Postgres."""

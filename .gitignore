@@ -4,3 +4,4 @@ venv/
 *.py[cod]
 *.mo
 *.log
+storage.json

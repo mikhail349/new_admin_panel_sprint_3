@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 import datetime
+import logging
 
 from psycopg2._psycopg import connection as Connection
 from elastic_transport import ConnectionError
@@ -112,6 +113,7 @@ class FilmworkLoader():
 
             if body:
                 es.bulk(body=body)
+                logging.info(f'Было обновлено {len(rows)} Кинопроизведений')
                 if last_updated_at:
                     self.state.set_state('film_work', last_updated_at)
 

@@ -1,4 +1,5 @@
 import time
+import logging
 
 import psycopg2
 from psycopg2.extras import DictCursor
@@ -17,6 +18,8 @@ def connect():
 
 
 def main():
+    logging.info(f'Сервис запущен. Частота опроса БД: ' \
+                 f'{config.SLEEP_SECONDS} сек.')
     while True:
         try:
             with connect() as psql_conn:
@@ -27,8 +30,9 @@ def main():
                                            state=state)
                 while True:
                     filmwork_etl.etl()
-                    time.sleep(1)
-        except (OperationalError, InterfaceError):
+                    time.sleep(config.SLEEP_SECONDS)
+        except (OperationalError, InterfaceError) as e:
+            logging.error(e)
             continue
 
 
