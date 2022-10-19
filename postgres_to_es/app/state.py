@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from typing import Any
-import json
 
 from redis import Redis
 from redis.exceptions import ConnectionError
@@ -10,51 +9,34 @@ from app.utils import backoff
 
 @dataclass
 class RedisStorage():
+    """Класс для хранения состояния в Redis.
+
+    Args:
+        redis: Драйвер Redis
+
+    """
     redis: Redis
 
     @backoff(classes=(ConnectionError,))
     def save_state(self, state: dict) -> None:
-        self.redis.mset(state)
-
-    @backoff(classes=(ConnectionError,))
-    def retrieve_state(self) -> dict:
-        r = self.redis
-        return {key: r.get(key) for key in r.keys()}
-
-
-@dataclass
-class JsonFileStorage():
-    """Класс для постоянного хранения состояния в формате JSON.
-
-    Args:
-        file_path: Путь файла json
-
-    """
-    file_path: str
-
-    def save_state(self, state: dict) -> None:
-        """Сохранить состояние в файл.
+        """Сохранить состояние в БД.
 
         Args:
             state: Словарь-состояние
 
         """
-        with open(self.file_path, 'w') as f:
-            json.dump(state, f, default=str)
+        self.redis.mset(state)
 
+    @backoff(classes=(ConnectionError,))
     def retrieve_state(self) -> dict:
-        """Загрузить состояние из файла.
-        Если файла нет, будет возвращен пустой словарь.
+        """Загрузить состояние из БД.
 
         Returns:
             dict: Словарь-состояние
 
         """
-        try:
-            with open(self.file_path, 'r') as f:
-                return json.load(f)
-        except FileNotFoundError:
-            return {}
+        r = self.redis
+        return {key: r.get(key) for key in r.keys()}
 
 
 @dataclass
