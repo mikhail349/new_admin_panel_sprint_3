@@ -41,7 +41,7 @@ services:
   redis:
     build: ./redis
     volumes:
-      - redisdata:/var/lib/redis
+      - redisdata:/var/lib/redis/data
     restart: always
   pg_to_es:
     build: ./postgres_to_es
