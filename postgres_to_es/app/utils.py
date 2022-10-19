@@ -11,6 +11,7 @@ from elastic_transport import ConnectionError
 import psycopg2
 from psycopg2.extras import DictCursor
 from psycopg2 import OperationalError
+from redis import Redis
 
 from app import config
 
@@ -71,6 +72,8 @@ def backoff(start_sleep_time=0.1, factor=2, border_sleep_time=10,
                 try:
                     if time.time() >= next_time:
                         result = func(*args, **kwargs)
+                        if retries:
+                            logging.info('Соединение восстановлено.')
                         break
                 except classes as e:
                     logging.error(e)
@@ -90,6 +93,11 @@ def backoff(start_sleep_time=0.1, factor=2, border_sleep_time=10,
 def psql_connect():
     """Подключиться к Postgres."""
     return psycopg2.connect(**config.POSTGRES_DSN, cursor_factory=DictCursor)
+
+
+def redis_init():
+    return Redis(host=config.REDIS['HOST'], port=config.REDIS['PORT'],
+                 db=0, decode_responses=True)
 
 
 class EtlTransformer():

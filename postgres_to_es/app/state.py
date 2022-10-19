@@ -1,6 +1,25 @@
 from dataclasses import dataclass
-import json
 from typing import Any
+import json
+
+from redis import Redis
+from redis.exceptions import ConnectionError
+
+from app.utils import backoff
+
+
+@dataclass
+class RedisStorage():
+    redis: Redis
+
+    @backoff(classes=(ConnectionError,))
+    def save_state(self, state: dict) -> None:
+        self.redis.mset(state)
+
+    @backoff(classes=(ConnectionError,))
+    def retrieve_state(self) -> dict:
+        r = self.redis
+        return {key: r.get(key) for key in r.keys()}
 
 
 @dataclass
@@ -47,7 +66,7 @@ class State:
         storage: Хранилище для постоянного хранения состояния
 
     """
-    storage: JsonFileStorage
+    storage: RedisStorage
 
     def __post_init__(self):
         """Инициализировать состояние."""

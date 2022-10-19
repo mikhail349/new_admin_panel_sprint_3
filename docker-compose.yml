@@ -38,13 +38,20 @@ services:
       - "ES_JAVA_OPTS=-Xms200m -Xmx200m"
       - discovery.type=single-node
     restart: always
+  redis:
+    build: ./redis
+    volumes:
+      - redisdata:/var/lib/redis
+    restart: always
   pg_to_es:
     build: ./postgres_to_es
     restart: always
     depends_on:
       - db
       - es
+      - redis
 
 volumes:
   pgdata:
   esdata:
+  redisdata:

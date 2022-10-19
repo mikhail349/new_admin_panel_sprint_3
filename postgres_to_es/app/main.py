@@ -5,8 +5,8 @@ from psycopg2 import OperationalError, InterfaceError
 
 from app import config
 from app.etl import Etl
-from app.state import State, JsonFileStorage
-from app.utils import psql_connect
+from app.state import State, RedisStorage
+from app.utils import psql_connect, redis_init
 
 
 def main():
@@ -20,7 +20,8 @@ def main():
                     'Кол-во строк за один запрос: %d' % (config.SLEEP_SECONDS,
                                                          config.ROWS_LIMIT)
                 )
-                storage = JsonFileStorage(config.STORAGE_PATH)
+                redis = redis_init()
+                storage = RedisStorage(redis)
                 state = State(storage)
 
                 etl = Etl(connection=psql_conn,

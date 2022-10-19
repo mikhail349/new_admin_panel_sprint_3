@@ -251,8 +251,8 @@ class Etl():
         EtlLoader.load(rows)
 
         if state['film_work']:
-            self.state.set_state('film_work', state['film_work'])
+            self.state.set_state('film_work', str(state['film_work']))
         if state['genre']:
-            self.state.set_state('genre', state['genre'])
+            self.state.set_state('genre', str(state['genre']))
         if state['person']:
-            self.state.set_state('person', state['person'])
+            self.state.set_state('person', str(state['person']))

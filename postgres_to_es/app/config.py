@@ -26,6 +26,12 @@ ES = {
 }
 """Настройки подключения к Elasticsearch."""
 
+REDIS = {
+    'HOST': os.environ.get('REDIS_HOST', '127.0.0.1'),
+    'PORT': os.environ.get('REDIS_PORT', 6379)
+}
+"""Настройки подключения к Redis."""
+
 STORAGE_PATH = os.environ.get('STORAGE_PATH', 'storage.json')
 """Путь для хранилища состояния."""
 
