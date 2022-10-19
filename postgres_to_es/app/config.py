@@ -32,8 +32,5 @@ REDIS = {
 }
 """Настройки подключения к Redis."""
 
-STORAGE_PATH = os.environ.get('STORAGE_PATH', 'storage.json')
-"""Путь для хранилища состояния."""
-
 SLEEP_SECONDS = float(os.environ.get('SLEEP_SECONDS', 1.0))
 """Через сколько секунд заново опрашивать Postgres."""
