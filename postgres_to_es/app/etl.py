@@ -4,6 +4,7 @@ import datetime
 import logging
 
 from elasticsearch import Elasticsearch
+from elasticsearch.helpers import bulk
 from elastic_transport import ConnectionError
 from psycopg2._psycopg import connection
 import backoff
@@ -40,15 +41,12 @@ def load(rows: list[Filmwork]):
         return Elasticsearch(f"http://{host}:{port}")
 
     with es_init() as es:
-        body = []
-        for row in rows:
-            meta = {'index': {'_index': config.ES['INDEX'],
-                              '_id': row.id}}
-            body.append(meta)
-            body.append(row.dict())
-
+        body = [{'_index': config.ES['INDEX'],
+                 '_id': row.id,
+                 '_source': row.dict()}
+                for row in rows]
         if body:
-            es.bulk(body=body)
+            bulk(es, body)
             logging.info(f'Было обновлено {len(rows)} Кинопроизведений')
 
 
