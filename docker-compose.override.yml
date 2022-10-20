@@ -1,0 +1,11 @@
+version: '3'
+services:
+  db:
+    ports:
+      - 5432:5432
+  es:
+    ports:
+      - 9200:9200
+  redis:
+    ports:
+      - 6379:6379
