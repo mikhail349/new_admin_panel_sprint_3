@@ -1,10 +1,49 @@
 from dataclasses import dataclass
 from typing import Any
 import datetime
+import logging
 
+from elastic_transport import ConnectionError
 from psycopg2._psycopg import connection
+import backoff
+
 from app.state import State
-from app.utils import EtlTransformer, EtlLoader
+from app.utils import es_init
+from app.models import Filmwork
+from app import config
+
+
+def transform(rows: list[Any]) -> list[Filmwork]:
+    """Трансформировать Кинопроизведения из формата Postgres в ES.
+
+    Args:
+        rows: Данные из Postgres
+
+    """
+    return [Filmwork(**row) for row in rows]
+
+
+@backoff.on_exception(backoff.expo,
+                      ConnectionError,
+                      max_time=config.BACKOFF_MAX_TIME)
+def load(rows: list[Filmwork]):
+    """Загрузить Кинопроизведения в ElasticSearch.
+
+    Args:
+        rows: Кинопроизведения в подготовленном формате
+
+    """
+    with es_init() as es:
+        body = []
+        for row in rows:
+            meta = {'index': {'_index': config.ES['INDEX'],
+                                '_id': row.id}}
+            body.append(meta)
+            body.append(row.dict())
+
+        if body:
+            es.bulk(body=body)
+            logging.info(f'Было обновлено {len(rows)} Кинопроизведений')
 
 
 @dataclass
@@ -246,9 +285,9 @@ class Etl():
                               state=self.state)
 
         rows, state = extractor.get()
-        rows = EtlTransformer.transform(rows)
+        rows = transform(rows)
         rows = list(set(rows))
-        EtlLoader.load(rows)
+        load(rows)
 
         if state['film_work']:
             self.state.set_state('film_work', str(state['film_work']))
