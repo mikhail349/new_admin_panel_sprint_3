@@ -31,8 +31,8 @@ def main():
                 while True:
                     etl.etl()
                     time.sleep(config.SLEEP_SECONDS)
-        except (OperationalError, InterfaceError) as e:
-            logging.error(e)
+        except Exception as e:
+            logging.error(e, exc_info=True)
             continue
 
 
