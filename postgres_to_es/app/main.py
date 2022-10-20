@@ -1,8 +1,6 @@
 import time
 import logging
 
-from psycopg2 import OperationalError, InterfaceError
-
 from app import config
 from app.etl import Etl
 from app.state import State, RedisStorage
