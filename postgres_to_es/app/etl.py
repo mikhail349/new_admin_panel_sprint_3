@@ -147,9 +147,7 @@ class Extractor():
             curs.execute(sql)
             data = curs.fetchall()
 
-            last_updated_at = None
-            if data:
-                last_updated_at = data[-1]['updated_at']
+            last_updated_at = data[-1]['updated_at'] if data else None
             return (data, last_updated_at)
 
     def get_by_genres(self) -> tuple[list[Any], datetime.datetime]:
@@ -191,9 +189,7 @@ class Extractor():
             curs.execute(sql)
             data = curs.fetchall()
 
-            last_updated_at = None
-            if data:
-                last_updated_at = data[-1]['updated_at']
+            last_updated_at = data[-1]['updated_at'] if data else None
             return (data, last_updated_at)
 
     def get_by_persons(self) -> tuple[list[Any], datetime.datetime]:
@@ -235,9 +231,7 @@ class Extractor():
             curs.execute(sql)
             data = curs.fetchall()
 
-            last_updated_at = None
-            if data:
-                last_updated_at = data[-1]['updated_at']
+            last_updated_at = data[-1]['updated_at'] if data else None
             return (data, last_updated_at)
 
     def get(self) -> tuple[list[Any], dict]:
