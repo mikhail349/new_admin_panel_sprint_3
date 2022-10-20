@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, ClassVar
 import datetime
 import logging
 
@@ -37,7 +37,7 @@ def load(rows: list[Filmwork]):
         body = []
         for row in rows:
             meta = {'index': {'_index': config.ES['INDEX'],
-                                '_id': row.id}}
+                              '_id': row.id}}
             body.append(meta)
             body.append(row.dict())
 
@@ -60,14 +60,8 @@ class Extractor():
     rows_limit: int
     state: State
 
-    def get_columns_for_select(self) -> str:
-        """Получить список столбцов для Кинопроизведения в формате SQL.
-
-        Returns:
-            str: Столбцы в формате SQL
-
+    SELECT_COLUMNS: ClassVar[str] = (
         """
-        return """
             fw.id,
             fw.rating as imdb_rating,
             COALESCE(array_agg(DISTINCT g.name), '{}') as genre,
@@ -107,6 +101,16 @@ class Extractor():
                 '[]'
             ) as writers
         """
+    )
+    """Столбцы Кинопроизведения в формате SQL для SELECT"""
+
+    def execute_sql(self, sql):
+        with self.connection.cursor() as curs:
+            curs.execute(sql)
+            data = curs.fetchall()
+
+            last_updated_at = data[-1]['updated_at'] if data else None
+            return (data, last_updated_at)
 
     def get_by_filmworks(self) -> tuple[list[Any], datetime.datetime]:
         """Получить сырые данные по измененным Кинопроизведениям и
@@ -114,41 +118,34 @@ class Extractor():
 
         def get_where() -> str:
             """Получить инструкцию WHERE для запроса."""
-
             value = self.state.get_state('film_work')
             if value:
                 return f"WHERE fw.updated_at > '{value}'"
             return ''
 
-        with self.connection.cursor() as curs:
-            columns = self.get_columns_for_select()
-            where = get_where()
-            sql = f"""
-                SELECT
-                    {columns}
-                    ,fw.updated_at
-                FROM
-                    content.film_work fw
-                    LEFT JOIN content.person_film_work pfw
-                        ON pfw.film_work_id = fw.id
-                    LEFT JOIN content.person p
-                        ON p.id = pfw.person_id
-                    LEFT JOIN content.genre_film_work gfw
-                        ON gfw.film_work_id = fw.id
-                    LEFT JOIN content.genre g
-                        ON g.id = gfw.genre_id
-                {where}
-                GROUP BY
-                    fw.id
-                ORDER BY
-                    fw.updated_at
-                LIMIT {self.rows_limit};
-            """
-            curs.execute(sql)
-            data = curs.fetchall()
-
-            last_updated_at = data[-1]['updated_at'] if data else None
-            return (data, last_updated_at)
+        where = get_where()
+        sql = f"""
+            SELECT
+                {self.SELECT_COLUMNS}
+                ,fw.updated_at
+            FROM
+                content.film_work fw
+                LEFT JOIN content.person_film_work pfw
+                    ON pfw.film_work_id = fw.id
+                LEFT JOIN content.person p
+                    ON p.id = pfw.person_id
+                LEFT JOIN content.genre_film_work gfw
+                    ON gfw.film_work_id = fw.id
+                LEFT JOIN content.genre g
+                    ON g.id = gfw.genre_id
+            {where}
+            GROUP BY
+                fw.id
+            ORDER BY
+                fw.updated_at
+            LIMIT {self.rows_limit};
+        """
+        return self.execute_sql(sql)
 
     def get_by_genres(self) -> tuple[list[Any], datetime.datetime]:
         """Получить сырые данные по измененным жанрам и
@@ -156,41 +153,34 @@ class Extractor():
 
         def get_having() -> str:
             """Получить инструкцию HAVING для запроса."""
-
             value = self.state.get_state('genre')
             if value:
                 return f"HAVING MAX(g.updated_at) > '{value}'"
             return ''
 
-        with self.connection.cursor() as curs:
-            columns = self.get_columns_for_select()
-            having = get_having()
-            sql = f"""
-                SELECT
-                    {columns}
-                    ,MAX(g.updated_at) as updated_at
-                FROM
-                    content.film_work fw
-                    JOIN content.genre_film_work gfw
-                        ON gfw.film_work_id = fw.id
-                    JOIN content.genre g
-                        ON g.id = gfw.genre_id
-                    LEFT JOIN content.person_film_work pfw
-                        ON pfw.film_work_id = fw.id
-                    LEFT JOIN content.person p
-                        ON p.id = pfw.person_id
-                GROUP BY
-                    fw.id
-                {having}
-                ORDER BY
-                    updated_at
-                LIMIT {self.rows_limit};
-            """
-            curs.execute(sql)
-            data = curs.fetchall()
-
-            last_updated_at = data[-1]['updated_at'] if data else None
-            return (data, last_updated_at)
+        having = get_having()
+        sql = f"""
+            SELECT
+                {self.SELECT_COLUMNS}
+                ,MAX(g.updated_at) as updated_at
+            FROM
+                content.film_work fw
+                JOIN content.genre_film_work gfw
+                    ON gfw.film_work_id = fw.id
+                JOIN content.genre g
+                    ON g.id = gfw.genre_id
+                LEFT JOIN content.person_film_work pfw
+                    ON pfw.film_work_id = fw.id
+                LEFT JOIN content.person p
+                    ON p.id = pfw.person_id
+            GROUP BY
+                fw.id
+            {having}
+            ORDER BY
+                updated_at
+            LIMIT {self.rows_limit};
+        """
+        return self.execute_sql(sql)
 
     def get_by_persons(self) -> tuple[list[Any], datetime.datetime]:
         """Получить сырые данные по измененным персоналиям и
@@ -198,41 +188,34 @@ class Extractor():
 
         def get_having() -> str:
             """Получить инструкцию HAVING для запроса."""
-
             value = self.state.get_state('person')
             if value:
                 return f"HAVING MAX(p.updated_at) > '{value}'"
             return ''
 
-        with self.connection.cursor() as curs:
-            columns = self.get_columns_for_select()
-            having = get_having()
-            sql = f"""
-                SELECT
-                    {columns}
-                    ,MAX(p.updated_at) as updated_at
-                FROM
-                    content.film_work fw
-                    JOIN content.person_film_work pfw
-                        ON pfw.film_work_id = fw.id
-                    JOIN content.person p
-                        ON p.id = pfw.person_id
-                    LEFT JOIN content.genre_film_work gfw
-                        ON gfw.film_work_id = fw.id
-                    LEFT JOIN content.genre g
-                        ON g.id = gfw.genre_id
-                GROUP BY
-                    fw.id
-                {having}
-                ORDER BY
-                    updated_at
-                LIMIT {self.rows_limit};
-            """
-            curs.execute(sql)
-            data = curs.fetchall()
-
-            last_updated_at = data[-1]['updated_at'] if data else None
-            return (data, last_updated_at)
+        having = get_having()
+        sql = f"""
+            SELECT
+                {self.SELECT_COLUMNS}
+                ,MAX(p.updated_at) as updated_at
+            FROM
+                content.film_work fw
+                JOIN content.person_film_work pfw
+                    ON pfw.film_work_id = fw.id
+                JOIN content.person p
+                    ON p.id = pfw.person_id
+                LEFT JOIN content.genre_film_work gfw
+                    ON gfw.film_work_id = fw.id
+                LEFT JOIN content.genre g
+                    ON g.id = gfw.genre_id
+            GROUP BY
+                fw.id
+            {having}
+            ORDER BY
+                updated_at
+            LIMIT {self.rows_limit};
+        """
+        return self.execute_sql(sql)
 
     def get(self) -> tuple[list[Any], dict]:
         """Получить кинопроизведения, измененные по Кинопроизведениям,
