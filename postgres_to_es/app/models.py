@@ -19,6 +19,3 @@ class Filmwork(BaseModel):
     writers_names: list[str]
     actors: list[Person]
     writers: list[Person]
-
-    def __hash__(self):
-        return hash(self.id)

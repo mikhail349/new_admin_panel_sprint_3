@@ -3,12 +3,12 @@ from typing import Any, ClassVar
 import datetime
 import logging
 
+from elasticsearch import Elasticsearch
 from elastic_transport import ConnectionError
 from psycopg2._psycopg import connection
 import backoff
 
 from app.state import State
-from app.utils import es_init
 from app.models import Filmwork
 from app import config
 
@@ -33,6 +33,12 @@ def load(rows: list[Filmwork]):
         rows: Кинопроизведения в подготовленном формате
 
     """
+    def es_init():
+        """Инициализировать Elasticsearch."""
+        host = config.ES['HOST']
+        port = config.ES['PORT']
+        return Elasticsearch(f"http://{host}:{port}")
+
     with es_init() as es:
         body = []
         for row in rows:
@@ -218,8 +224,8 @@ class Extractor():
         return self.execute_sql(sql)
 
     def get(self) -> tuple[list[Any], dict]:
-        """Получить кинопроизведения, измененные по Кинопроизведениям,
-        Жанрам, Персоналиям.
+        """Получить кинопроизведения, измененные по
+        Кинопроизведениям, Жанрам и Персоналиям.
 
         Returns:
             tuple[list[Any], dict]: Список кинопроизведений и словарь
@@ -263,7 +269,6 @@ class Etl():
 
         rows, state = extractor.get()
         rows = transform(rows)
-        rows = list(set(rows))
         load(rows)
 
         if state['film_work']:

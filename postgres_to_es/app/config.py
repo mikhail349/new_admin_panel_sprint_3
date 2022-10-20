@@ -26,9 +26,10 @@ ES = {
 }
 """Настройки подключения к Elasticsearch."""
 
-REDIS = {
-    'HOST': os.environ.get('REDIS_HOST', '127.0.0.1'),
-    'PORT': os.environ.get('REDIS_PORT', 6379)
+REDIS_DSN = {
+    'host': os.environ.get('REDIS_HOST', '127.0.0.1'),
+    'port': os.environ.get('REDIS_PORT', 6379),
+    'db': int(os.environ.get('REDIS_DB', 0))
 }
 """Настройки подключения к Redis."""
 

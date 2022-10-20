@@ -31,6 +31,7 @@ def main():
                     time.sleep(config.SLEEP_SECONDS)
         except Exception as e:
             logging.error(e, exc_info=True)
+            time.sleep(0.1)
             continue
 
 
