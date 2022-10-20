@@ -3,9 +3,7 @@ from functools import wraps
 import logging
 import time
 from typing import Any
-import uuid
 
-from pydantic import BaseModel
 from elasticsearch import Elasticsearch
 from elastic_transport import ConnectionError
 import psycopg2
@@ -14,27 +12,7 @@ from psycopg2 import OperationalError
 from redis import Redis
 
 from app import config
-
-
-class Person(BaseModel):
-    id: uuid.UUID
-    name: str
-
-
-class Filmwork(BaseModel):
-    id: uuid.UUID
-    imdb_rating: float = None
-    genre: list[str]
-    title: str
-    description: str = None
-    director: list[str]
-    actors_names: list[str]
-    writers_names: list[str]
-    actors: list[Person]
-    writers: list[Person]
-
-    def __hash__(self):
-        return hash(self.id)
+from app.models import Filmwork
 
 
 def es_init():
@@ -96,6 +74,7 @@ def psql_connect():
 
 
 def redis_init():
+    """Инициализировать Redis."""
     return Redis(host=config.REDIS['HOST'], port=config.REDIS['PORT'],
                  db=0, decode_responses=True)
 
