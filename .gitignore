@@ -1,4 +1,7 @@
 venv/
+static/
+media/
+
 .env
 .vscode/
 *.py[cod]
