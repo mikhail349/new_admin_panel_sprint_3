@@ -4,3 +4,4 @@ psycopg2==2.9.3
 pydantic==1.10.2
 elasticsearch==8.4.3
 redis==4.3.4
+backoff==2.2.1

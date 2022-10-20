@@ -34,3 +34,5 @@ REDIS = {
 
 SLEEP_SECONDS = float(os.environ.get('SLEEP_SECONDS', 1.0))
 """Через сколько секунд заново опрашивать Postgres."""
+
+BACKOFF_MAX_TIME = float(os.environ.get('BACKOFF_MAX_TIME', 10.0))

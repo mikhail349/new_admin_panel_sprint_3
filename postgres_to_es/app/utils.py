@@ -1,7 +1,5 @@
 from dataclasses import dataclass
-from functools import wraps
 import logging
-import time
 from typing import Any
 
 from elasticsearch import Elasticsearch
@@ -10,6 +8,7 @@ import psycopg2
 from psycopg2.extras import DictCursor
 from psycopg2 import OperationalError
 from redis import Redis
+import backoff
 
 from app import config
 from app.models import Filmwork
@@ -22,52 +21,7 @@ def es_init():
     return Elasticsearch(f"http://{host}:{port}")
 
 
-def backoff(start_sleep_time=0.1, factor=2, border_sleep_time=10,
-            classes=None):
-    """
-    Функция для повторного выполнения функции через некоторое время,
-    если возникла ошибка.
-    Использует наивный экспоненциальный рост времени повтора (factor)
-    до граничного времени ожидания (border_sleep_time)
-
-    Args:
-        start_sleep_time: начальное время повтора
-        factor: во сколько раз нужно увеличить время ожидания
-        border_sleep_time: граничное время ожидания
-        classes: Классы исключений для перехвата
-
-    Returns:
-        Wrapped function
-    """
-    def func_wrapper(func):
-        @wraps(func)
-        def inner(*args, **kwargs):
-            result = None
-            next_time = time.time()
-            retries = 0
-
-            while True:
-                try:
-                    if time.time() >= next_time:
-                        result = func(*args, **kwargs)
-                        if retries:
-                            logging.info('Соединение восстановлено.')
-                        break
-                except classes as e:
-                    logging.error(e)
-                    t = start_sleep_time * factor**(retries)
-                    if t >= border_sleep_time:
-                        t = border_sleep_time
-                    next_time = time.time() + t
-                    retries += 1
-                time.sleep(0.1)
-
-            return result
-        return inner
-    return func_wrapper
-
-
-@backoff(classes=(OperationalError,))
+@backoff.on_exception(backoff.expo, OperationalError, max_time=10)
 def psql_connect():
     """Подключиться к Postgres."""
     return psycopg2.connect(**config.POSTGRES_DSN, cursor_factory=DictCursor)
@@ -98,7 +52,9 @@ class EtlLoader():
     """Класс загрузки Кинопроизведений в ElasticSearch."""
 
     @classmethod
-    @backoff(classes=(ConnectionError,))
+    @backoff.on_exception(backoff.expo,
+                          ConnectionError,
+                          max_time=config.BACKOFF_MAX_TIME)
     def load(cls, rows: list[Filmwork]):
         """Загрузить Кинопроизведения в ElasticSearch.
 

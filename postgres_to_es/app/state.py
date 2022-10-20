@@ -3,8 +3,9 @@ from typing import Any
 
 from redis import Redis
 from redis.exceptions import ConnectionError
+import backoff
 
-from app.utils import backoff
+from app import config
 
 
 @dataclass
@@ -17,7 +18,9 @@ class RedisStorage():
     """
     redis: Redis
 
-    @backoff(classes=(ConnectionError,))
+    @backoff.on_exception(backoff.expo,
+                          ConnectionError,
+                          max_time=config.BACKOFF_MAX_TIME)
     def save_state(self, state: dict) -> None:
         """Сохранить состояние в БД.
 
@@ -27,7 +30,9 @@ class RedisStorage():
         """
         self.redis.mset(state)
 
-    @backoff(classes=(ConnectionError,))
+    @backoff.on_exception(backoff.expo,
+                          ConnectionError,
+                          max_time=config.BACKOFF_MAX_TIME)
     def retrieve_state(self) -> dict:
         """Загрузить состояние из БД.
 
