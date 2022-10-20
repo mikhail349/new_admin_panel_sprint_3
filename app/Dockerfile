@@ -9,9 +9,6 @@ ENV UWSGI_THREADS 8
 ENV UWSGI_HARAKIRI 60
 ENV DJANGO_SETTINGS_MODULE 'config.settings'
 
-ENV DB_HOST db
-ENV DB_PORT 5432
-
 COPY requirements.txt requirements.txt
 COPY uwsgi/uwsgi.ini uwsgi.ini
 
