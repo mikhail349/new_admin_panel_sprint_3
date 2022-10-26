@@ -1,68 +1,15 @@
 from dataclasses import dataclass
-from typing import Any, ClassVar
+from typing import ClassVar
 import datetime
-import logging
 
-from elasticsearch import Elasticsearch
-from elasticsearch.helpers import bulk
-from elastic_transport import ConnectionError
-from psycopg2._psycopg import connection
-import backoff
-
-from app.state import State
-from app.models import Filmwork
 from app import config
-
-
-def transform(rows: list[Any]) -> list[Filmwork]:
-    """Трансформировать Кинопроизведения из формата Postgres в ES.
-
-    Args:
-        rows: Данные из Postgres
-
-    """
-    return [Filmwork(**row) for row in rows]
-
-
-@backoff.on_exception(backoff.expo,
-                      ConnectionError,
-                      max_time=config.BACKOFF_MAX_TIME)
-def load(rows: list[Filmwork]):
-    """Загрузить Кинопроизведения в ElasticSearch.
-
-    Args:
-        rows: Кинопроизведения в подготовленном формате
-
-    """
-    def es_init():
-        """Инициализировать Elasticsearch."""
-        host = config.ES['HOST']
-        port = config.ES['PORT']
-        return Elasticsearch(f"http://{host}:{port}")
-
-    with es_init() as es:
-        body = [{'_index': config.ES['INDEX'],
-                 '_id': row.id,
-                 '_source': row.dict()}
-                for row in rows]
-        if body:
-            bulk(es, body)
-            logging.info(f'Было обновлено {len(rows)} Кинопроизведений')
+from app.models import Filmwork
+from app.etl_base import Extractor, Etl
 
 
 @dataclass
-class Extractor():
-    """Класс извлечения данных из Postgres
-
-    Args:
-        connection: Соединение с БД Postgres
-        rows_limit: Кол-во строк для обработки
-        state: Класс для хранения состояния
-
-    """
-    connection: connection
-    rows_limit: int
-    state: State
+class FilmworkExtractor(Extractor):
+    """Класс извлечения данных из Postgres."""
 
     SELECT_COLUMNS: ClassVar[str] = (
         """
@@ -108,15 +55,7 @@ class Extractor():
     )
     """Столбцы Кинопроизведения в формате SQL для SELECT"""
 
-    def execute_sql(self, sql):
-        with self.connection.cursor() as curs:
-            curs.execute(sql)
-            data = curs.fetchall()
-
-            last_updated_at = data[-1]['updated_at'] if data else None
-            return (data, last_updated_at)
-
-    def get_by_filmworks(self) -> tuple[list[Any], datetime.datetime]:
+    def get_by_filmworks(self) -> tuple[list, datetime.datetime]:
         """Получить сырые данные по измененным Кинопроизведениям и
         дату-время последнего изменения."""
 
@@ -151,13 +90,13 @@ class Extractor():
         """
         return self.execute_sql(sql)
 
-    def get_by_genres(self) -> tuple[list[Any], datetime.datetime]:
+    def get_by_genres(self) -> tuple[list, datetime.datetime]:
         """Получить сырые данные по измененным жанрам и
         дату-время последнего изменения."""
 
         def get_having() -> str:
             """Получить инструкцию HAVING для запроса."""
-            value = self.state.get_state('genre')
+            value = self.state.get_state('film_work_genre')
             if value:
                 return f"HAVING MAX(g.updated_at) > '{value}'"
             return ''
@@ -186,13 +125,13 @@ class Extractor():
         """
         return self.execute_sql(sql)
 
-    def get_by_persons(self) -> tuple[list[Any], datetime.datetime]:
+    def get_by_persons(self) -> tuple[list, datetime.datetime]:
         """Получить сырые данные по измененным персоналиям и
         дату-время последнего изменения."""
 
         def get_having() -> str:
             """Получить инструкцию HAVING для запроса."""
-            value = self.state.get_state('person')
+            value = self.state.get_state('film_work_person')
             if value:
                 return f"HAVING MAX(p.updated_at) > '{value}'"
             return ''
@@ -221,7 +160,7 @@ class Extractor():
         """
         return self.execute_sql(sql)
 
-    def get(self) -> tuple[list[Any], dict]:
+    def get(self) -> tuple[list, dict]:
         """Получить кинопроизведения, измененные по
         Кинопроизведениям, Жанрам и Персоналиям.
 
@@ -238,40 +177,40 @@ class Extractor():
 
         state = {
             'film_work': last_updated_filmwork,
-            'genre': last_updated_genre,
-            'person': last_updated_person
+            'film_work_genre': last_updated_genre,
+            'film_work_person': last_updated_person
         }
 
         return (rows, state)
 
 
-@dataclass
-class Etl():
-    """Основной ETL-класс.
+class EtlFilmwork(Etl):
+    """Основной ETL-класс для Кинопроизведений."""
+
+    def save_state(self, state: dict):
+        if state['film_work']:
+            self.state.set_state('film_work',
+                                 str(state['film_work']))
+        if state['film_work_genre']:
+            self.state.set_state('film_work_genre',
+                                 str(state['film_work_genre']))
+        if state['film_work_person']:
+            self.state.set_state('film_work_person',
+                                 str(state['film_work_person']))
+        return super().save_state(state)
+
+
+def create_filmwork_etl(psql_conn, state):
+    """Создать ETL-класс для Кинопроизведений.
 
     Args:
-        connection: Соединение с БД Postgres
-        rows_limit: Кол-во строк для обработки
+        psql_conn: соединение с Postgres
         state: Класс для хранения состояния
 
     """
-    connection: connection
-    rows_limit: int
-    state: State
-
-    def etl(self):
-        """Извлечь, трансформировать и загрузить Кинопроизведения."""
-        extractor = Extractor(connection=self.connection,
-                              rows_limit=self.rows_limit,
-                              state=self.state)
-
-        rows, state = extractor.get()
-        rows = transform(rows)
-        load(rows)
-
-        if state['film_work']:
-            self.state.set_state('film_work', str(state['film_work']))
-        if state['genre']:
-            self.state.set_state('genre', str(state['genre']))
-        if state['person']:
-            self.state.set_state('person', str(state['person']))
+    return EtlFilmwork(connection=psql_conn,
+                       rows_limit=config.ROWS_LIMIT,
+                       state=state,
+                       extractor_class=FilmworkExtractor,
+                       model=Filmwork,
+                       index_name='movies')

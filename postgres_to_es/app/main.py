@@ -2,7 +2,9 @@ import time
 import logging
 
 from app import config
-from app.etl import Etl
+from app.etl_filmwork import create_filmwork_etl
+from app.etl_genre import create_genre_etl
+from app.etl_persons import create_person_etl
 from app.state import State, RedisStorage
 from app.utils import psql_connect, redis_init
 
@@ -22,12 +24,17 @@ def main():
                 storage = RedisStorage(redis)
                 state = State(storage)
 
-                etl = Etl(connection=psql_conn,
-                          rows_limit=config.ROWS_LIMIT,
-                          state=state)
+                etl_filmwork = create_filmwork_etl(psql_conn=psql_conn,
+                                                   state=state)
+                etl_genre = create_genre_etl(psql_conn=psql_conn,
+                                             state=state)
+                etl_person = create_person_etl(psql_conn=psql_conn,
+                                               state=state)
 
                 while True:
-                    etl.etl()
+                    etl_filmwork.etl()
+                    etl_genre.etl()
+                    etl_person.etl()
                     time.sleep(config.SLEEP_SECONDS)
         except Exception as e:
             logging.error(e, exc_info=True)

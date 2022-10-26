@@ -22,7 +22,8 @@ ROWS_LIMIT = int(os.environ.get('ROWS_LIMIT', 100))
 ES = {
     'HOST': os.environ.get('ES_HOST', '127.0.0.1'),
     'PORT': os.environ.get('ES_PORT', 9200),
-    'INDEX': os.environ.get('ES_INDEX')
+    'MOVIES_INDEX': os.environ.get('MOVIES_INDEX', 'movies'),
+    'GENRE_INDEX': os.environ.get('GENRE_INDEX', 'genres')
 }
 """Настройки подключения к Elasticsearch."""
 
