@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
 from app import config
-from app.models import Person
-from app.etl_base import Extractor, Etl
+from app.models.person import Person
+from app.etl.base import Extractor, Etl
 
 
 @dataclass

@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 
 from app import config
-from app.models import Genre
-from app.etl_base import Extractor, Etl
+from app.models.genre import Genre
+from app.etl.base import Extractor, Etl
 
 
 @dataclass

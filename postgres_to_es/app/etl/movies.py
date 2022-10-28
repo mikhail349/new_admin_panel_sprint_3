@@ -3,8 +3,8 @@ from typing import ClassVar
 import datetime
 
 from app import config
-from app.models import Filmwork
-from app.etl_base import Extractor, Etl
+from app.models.filmwork import Filmwork
+from app.etl.base import Extractor, Etl
 
 
 @dataclass
@@ -15,14 +15,11 @@ class FilmworkExtractor(Extractor):
         """
             fw.id,
             fw.rating as imdb_rating,
-            COALESCE(array_agg(DISTINCT g.name), '{}') as genre,
             fw.title,
             fw.description,
-            COALESCE(
-                array_agg(DISTINCT p.full_name)
-                    FILTER (WHERE pfw.role = 'director'),
-                '{}'
-            ) as director,
+            fw.creation_date,
+            fw.file_path as file_url,
+
             COALESCE(
                 array_agg(DISTINCT p.full_name)
                     FILTER (WHERE pfw.role = 'actor'),
@@ -33,6 +30,7 @@ class FilmworkExtractor(Extractor):
                     FILTER (WHERE pfw.role = 'writer'),
                 '{}'
             ) as writers_names,
+
             COALESCE(
                 json_agg(
                     DISTINCT jsonb_build_object(
@@ -50,7 +48,25 @@ class FilmworkExtractor(Extractor):
                     )
                 ) FILTER (WHERE pfw.role = 'writer'),
                 '[]'
-            ) as writers
+            ) as writers,
+            COALESCE(
+                json_agg(
+                    DISTINCT jsonb_build_object(
+                        'id', p.id,
+                        'name', p.full_name
+                    )
+                ) FILTER (WHERE pfw.role = 'director'),
+                '[]'
+            ) as directors,
+            COALESCE(
+                json_agg(
+                    DISTINCT jsonb_build_object(
+                        'id', g.id,
+                        'name', g.name
+                    )
+                ),
+                '[]'
+            ) as genres
         """
     )
     """Столбцы Кинопроизведения в формате SQL для SELECT"""

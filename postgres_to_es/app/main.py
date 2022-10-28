@@ -2,9 +2,9 @@ import time
 import logging
 
 from app import config
-from app.etl_filmwork import create_filmwork_etl
-from app.etl_genre import create_genre_etl
-from app.etl_persons import create_person_etl
+from app.etl.movies import create_filmwork_etl
+from app.etl.genres import create_genre_etl
+from app.etl.persons import create_person_etl
 from app.state import State, RedisStorage
 from app.utils import psql_connect, redis_init
 
