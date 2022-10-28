@@ -2,20 +2,20 @@ import datetime
 
 from pydantic import FileUrl
 
-from models.base import UUIDMixin
+from models.base import Base
 
 
-class Person(UUIDMixin):
+class Person(Base):
     """Класс персоны в кинопроизведении."""
     name: str
 
 
-class Genre(UUIDMixin):
+class Genre(Base):
     """Класс жанра в кинопроизведении."""
     name: str
 
 
-class Filmwork(UUIDMixin):
+class Filmwork(Base):
     """Класс кинопроизведения."""
     title: str
     description: str = None

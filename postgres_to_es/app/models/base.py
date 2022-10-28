@@ -3,6 +3,6 @@ import uuid
 from pydantic import BaseModel
 
 
-class UUIDMixin(BaseModel):
-    """Миксин с UUID."""
+class Base(BaseModel):
+    """Базовый класс с UUID."""
     id: uuid.UUID

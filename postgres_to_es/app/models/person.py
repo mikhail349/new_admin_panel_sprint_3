@@ -1,5 +1,6 @@
-from models.base import UUIDMixin
+from models.base import Base
 
 
-class Person(UUIDMixin):
+class Person(Base):
+    """Класс персоны."""
     full_name: str
