@@ -68,6 +68,9 @@ curl -XPUT http://127.0.0.1:9200/movies -H 'Content-Type: application/json' -d'
       "file_url": {
         "type": "keyword"
       },
+      "type": {
+        "type": "keyword"
+      },
 
       "actors_names": {
         "type": "text",

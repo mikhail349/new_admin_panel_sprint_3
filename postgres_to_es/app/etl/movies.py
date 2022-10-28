@@ -19,6 +19,7 @@ class FilmworkExtractor(Extractor):
             fw.description,
             fw.creation_date,
             fw.file_path as file_url,
+            fw.type,
 
             COALESCE(
                 array_agg(DISTINCT p.full_name)

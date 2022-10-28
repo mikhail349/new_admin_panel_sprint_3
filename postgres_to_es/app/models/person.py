@@ -2,5 +2,5 @@ from models.base import Base
 
 
 class Person(Base):
-    """Класс персоны."""
+    """Модель персоны."""
     full_name: str

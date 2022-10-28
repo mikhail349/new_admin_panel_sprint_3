@@ -4,5 +4,5 @@ from pydantic import BaseModel
 
 
 class Base(BaseModel):
-    """Базовый класс с UUID."""
+    """Базовый модель с UUID."""
     id: uuid.UUID

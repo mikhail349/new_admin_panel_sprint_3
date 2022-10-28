@@ -6,17 +6,18 @@ from models.base import Base
 
 
 class Person(Base):
-    """Класс персоны в кинопроизведении."""
+    """Модель персоны в кинопроизведении."""
     name: str
 
 
 class Genre(Base):
-    """Класс жанра в кинопроизведении."""
+    """Модель жанра в кинопроизведении."""
     name: str
 
 
 class Filmwork(Base):
-    """Класс кинопроизведения."""
+    """Модель кинопроизведения."""
+    type: str
     title: str
     description: str = None
     imdb_rating: float = None
