@@ -29,7 +29,9 @@ class PersonExtractor(Extractor):
             SELECT
                 p.id,
                 p.full_name,
-                p.updated_at
+                p.updated_at,
+                ARRAY_AGG(DISTINCT pfw.role) AS roles,
+                ARRAY_AGG(DISTINCT pfw.film_work_id)::text[] AS film_ids
             FROM
                 content.person p
                 JOIN content.person_film_work pfw ON p.id = pfw.person_id

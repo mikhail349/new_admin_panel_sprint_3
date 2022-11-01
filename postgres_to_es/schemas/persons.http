@@ -48,6 +48,19 @@ curl -XPUT http://127.0.0.1:9200/persons -H 'Content-Type: application/json' -d'
       },
       "full_name": {
         "type": "text",
+        "analyzer": "ru_en",
+        "fields": {
+           "raw": {
+             "type":  "keyword"
+           }
+         }
+      },
+      "roles": {
+        "type": "text",
+        "analyzer": "ru_en"
+      },
+      "film_ids": {
+        "type": "text",
         "analyzer": "ru_en"
       }
     }
